@@ -55,7 +55,7 @@ class Appr(object):
         best_acc = 0
         best_model = utils.get_model(self.model)
         self.model_old = deepcopy(self.model)
-        # utils.freeze_model(self.model_old)  # Freeze the weights
+        utils.freeze_model(self.model_old)  # Freeze the weights
 
 
         self.optimizer = optimizer
@@ -88,19 +88,11 @@ class Appr(object):
             valid_loss, valid_acc = self.eval(t, test_dataloader,regular)
             print(' Valid: loss={:.3f}, acc={:5.1f}% |'.format(valid_loss, 100 * valid_acc), end='')
 
-        
-            if valid_acc >= best_acc:
-                best_acc = valid_acc
-                best_model = utils.get_model(self.model)
-                # patience = self.lr_patience
-                print(' *,best_model',end=" ")
 
             print()
-            utils.freeze_model(self.model_old)
 
 
     
-        utils.set_model_(self.model, best_model)
         self.model_old = deepcopy(self.model)
         # self.calculate_import_percent()
         best_avg = 0
@@ -166,70 +158,20 @@ class Appr(object):
             # loss value out of the tuple.
             loss = outputs[0]
 
-            # regualr_loss = self.custom_regularization(self.model_old, self.model, self.sbatch, loss)
-            # loss = self.custom_regularization(self.model_old, self.model, self.sbatch, loss)
             if t!=0 and regular:
                 loss = custom_regularization(self.model_old, self.model, self.sbatch, loss)
 
-            # total_loss += loss.item()
+
 
             # Perform a backward pass to calculate the gradients.
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(),1.0)
-
-            # if t>0:
-            #     for n,p in self.model.named_modules():
-            #         if isinstance(p, BayesianLinear)==False:
-            #             # # if isinstance(p,nn.Embedding):
-            #             # #     print(n)
-            #             # #     p.weight.grad.data.fill_(0)
-            #             # # elif 'LayerNorm' in n:
-            #             # #     p.weight.grad.data.fill_(0)
-            #             # #     p.bias.grad.data.fill_(0)
-            #             # if isinstance(p,nn.Linear):
-            #             #     # print(n)
-            #             #     if p.weight.grad is not None:
-            #             #         p.weight.grad.data.fill_(0)
-            #             #         p.bias.grad.data.fill_(0)
-            #             #     continue
-            #             # else:
-            #             #     # print("continue"+n)
-            #             #     continue
-            #             continue
-            #         rho = p.weight_rho
-            #         weight = p.weight_mu
-            #         # print(rho.shape)
-            #         sigma = torch.log1p(torch.exp(rho))
-
-            #         fan_in, fan_out = _calculate_fan_in_and_fan_out(weight)
-
-            #         if isinstance(p, BayesianLinear):
-            #             std_init = 0.1* math.sqrt((2 / fan_in) * args.ratio)
-                    
-            #         update = (sigma/std_init)**2
-            #         # print(update.shape)
-            #         # print(p.bias.grad.data.shape)
-            #         # p.bias.grad.data *= update.squeeze(1)
-            #         # out_features,in_features = weight.shape
-            #         # grad_s = update.expand(out_features,in_features)
-            #         # p.weight_mu.grad.data *= grad_s
-                    
-            #         p.weight_rho.grad.data *= update 
-
-            # if t!=0 and regular:
-            #     loss2 = self.custom_regularization(self.model_old, self.model, 16)#, loss)
-            #     loss2.backward()
+            
 
             self.optimizer.step()  # the update of rho lr is in AdamW_bayes optimizer.step()
             self.scheduler.step()
 
 
-            # if step % 1000 == 0 :
-            #     train_loss, train_acc = self.eval(t, train_dataloader,regular)
-            #     self.model.train()
 
-            #     print('|step: {}|Train: loss={:.3f}, acc={:5.1f}% |'.format(
-            #         step,train_loss, 100 * train_acc))
 
         avg_train_loss = total_loss / len(train_dataloader)            
             
